@@ -33,6 +33,12 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    
+    /* Custom colors for electric blue theme */
+    --electric-blue-400: #60a5fa;
+    --electric-blue-500: #3b82f6;
+    --electric-blue-600: #2563eb;
+    --neon-cyan: #06b6d4;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -68,5 +74,65 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Fix for electric blue colors */
+.text-electric-blue-400 {
+  color: var(--electric-blue-400);
+}
+
+.text-electric-blue-500 {
+  color: var(--electric-blue-500);
+}
+
+.border-electric-blue-500 {
+  border-color: var(--electric-blue-500);
+}
+
+.bg-electric-blue-500 {
+  background-color: var(--electric-blue-500);
+}
+
+.text-neon-cyan {
+  color: var(--neon-cyan);
+}
+
+/* Fix alignment issues */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
   }
 }
