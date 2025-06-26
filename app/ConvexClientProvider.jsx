@@ -1,13 +1,21 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 
 const ConvexClientProvider = ({ children }) => {
+    const [isClient, setIsClient] = useState(false);
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+    
     if (!convexUrl) {
-        console.error('NEXT_PUBLIC_CONVEX_URL is not defined. Please check your .env.local file.');
+        if (!isClient) {
+            return null;
+        }
+        
         return (
             <div style={{ padding: '20px', color: 'red' }}>
                 <h2>Configuration Error</h2>
