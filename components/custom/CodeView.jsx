@@ -24,7 +24,8 @@ function CodeView() {
 
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('code');
-    const [files,setFiles]=useState(Lookup?.DEFAULT_FILE);
+    const [files,setFiles]=useState({});
+    const [currentEnvironment, setCurrentEnvironment] = useState('React');
     const {messages,setMessages}=useContext(MessagesContext);
     const UpdateFiles=useMutation(api.workspace.UpdateFiles);
     const convex=useConvex();
@@ -38,9 +39,14 @@ function CodeView() {
         const result=await convex.query(api.workspace.GetWorkspace,{
             workspaceId:id
         });
+        
+        const environment = result?.environment || 'React';
+        setCurrentEnvironment(environment);
+        
         // Preprocess and validate files before merging
         const processedFiles = preprocessFiles(result?.fileData || {});
-        const mergedFiles = {...Lookup.DEFAULT_FILE, ...processedFiles};
+        const defaultFiles = Lookup.DEFAULT_FILE[environment] || Lookup.DEFAULT_FILE.React;
+        const mergedFiles = {...defaultFiles, ...processedFiles};
         setFiles(mergedFiles);
     }
 
@@ -73,14 +79,16 @@ function CodeView() {
 
     const GenerateAiCode=async()=>{
         setLoading(true);
-        const PROMPT=JSON.stringify(messages)+" "+Prompt.CODE_GEN_PROMPT;
+        const environmentPrompt = Prompt.CODE_GEN_PROMPT[currentEnvironment] || Prompt.CODE_GEN_PROMPT.React;
+        const PROMPT=JSON.stringify(messages)+" "+environmentPrompt;
         const result=await axios.post('/api/gen-ai-code',{
             prompt:PROMPT
         });
         
         // Preprocess AI-generated files
         const processedAiFiles = preprocessFiles(result.data?.files || {});
-        const mergedFiles = {...Lookup.DEFAULT_FILE, ...processedAiFiles};
+        const defaultFiles = Lookup.DEFAULT_FILE[currentEnvironment] || Lookup.DEFAULT_FILE.React;
+        const mergedFiles = {...defaultFiles, ...processedAiFiles};
         setFiles(mergedFiles);
 
         await UpdateFiles({
@@ -118,19 +126,21 @@ function CodeView() {
                 }
             });
 
-            // Add package.json with dependencies
-            const packageJson = {
-                name: "generated-project",
-                version: "1.0.0",
-                private: true,
-                dependencies: Lookup.DEPENDANCY,
-                scripts: {
-                    "dev": "vite",
-                    "build": "vite build",
-                    "preview": "vite preview"
-                }
-            };
-            zip.file("package.json", JSON.stringify(packageJson, null, 2));
+            // Add package.json with dependencies for React projects
+            if (currentEnvironment === 'React') {
+                const packageJson = {
+                    name: "generated-project",
+                    version: "1.0.0",
+                    private: true,
+                    dependencies: Lookup.DEPENDANCY.React,
+                    scripts: {
+                        "dev": "vite",
+                        "build": "vite build",
+                        "preview": "vite preview"
+                    }
+                };
+                zip.file("package.json", JSON.stringify(packageJson, null, 2));
+            }
 
             // Generate the zip file
             const blob = await zip.generateAsync({ type: "blob" });
@@ -139,7 +149,7 @@ function CodeView() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'project-files.zip';
+            a.download = `${currentEnvironment.toLowerCase()}-project-files.zip`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -149,21 +159,86 @@ function CodeView() {
         }
     };
 
+    // Determine template and setup based on environment
+    const getTemplateConfig = () => {
+        switch (currentEnvironment) {
+            case 'React':
+                return {
+                    template: "react",
+                    customSetup: {
+                        dependencies: Lookup.DEPENDANCY.React,
+                        entry: '/index.js'
+                    },
+                    options: {
+                        externalResources: ['https://cdn.tailwindcss.com'],
+                        bundlerTimeoutSecs: 120,
+                        recompileMode: "immediate",
+                        recompileDelay: 300
+                    }
+                };
+            case 'HTML':
+                return {
+                    template: "static",
+                    customSetup: {},
+                    options: {
+                        bundlerTimeoutSecs: 120,
+                        recompileMode: "immediate",
+                        recompileDelay: 300
+                    }
+                };
+            case 'WordPress':
+                return {
+                    template: "static",
+                    customSetup: {},
+                    options: {
+                        bundlerTimeoutSecs: 120,
+                        recompileMode: "immediate",
+                        recompileDelay: 300
+                    }
+                };
+            default:
+                return {
+                    template: "react",
+                    customSetup: {
+                        dependencies: Lookup.DEPENDANCY.React,
+                        entry: '/index.js'
+                    },
+                    options: {
+                        externalResources: ['https://cdn.tailwindcss.com'],
+                        bundlerTimeoutSecs: 120,
+                        recompileMode: "immediate",
+                        recompileDelay: 300
+                    }
+                };
+        }
+    };
+
+    const templateConfig = getTemplateConfig();
+
     return (
         <div className='relative'>
             <div className='bg-[#181818] w-full p-2 border'>
                 <div className='flex items-center justify-between'>
-                    <div className='flex items-center flex-wrap shrink-0 bg-black p-1 justify-center
-                    w-[140px] gap-3 rounded-full'>
-                        <h2 onClick={() => setActiveTab('code')}
-                            className={`text-sm cursor-pointer 
-                        ${activeTab == 'code' && 'text-blue-500 bg-blue-500 bg-opacity-25 p-1 px-2 rounded-full'}`}>
-                            Code</h2>
+                    <div className='flex items-center gap-4'>
+                        <div className='flex items-center flex-wrap shrink-0 bg-black p-1 justify-center
+                        w-[140px] gap-3 rounded-full'>
+                            <h2 onClick={() => setActiveTab('code')}
+                                className={`text-sm cursor-pointer 
+                            ${activeTab == 'code' && 'text-blue-500 bg-blue-500 bg-opacity-25 p-1 px-2 rounded-full'}`}>
+                                Code</h2>
 
-                        <h2 onClick={() => setActiveTab('preview')}
-                            className={`text-sm cursor-pointer 
-                        ${activeTab == 'preview' && 'text-blue-500 bg-blue-500 bg-opacity-25 p-1 px-2 rounded-full'}`}>
-                            Preview</h2>
+                            <h2 onClick={() => setActiveTab('preview')}
+                                className={`text-sm cursor-pointer 
+                            ${activeTab == 'preview' && 'text-blue-500 bg-blue-500 bg-opacity-25 p-1 px-2 rounded-full'}`}>
+                                Preview</h2>
+                        </div>
+                        
+                        {/* Environment Badge */}
+                        <div className="bg-gray-700 px-3 py-1 rounded-full">
+                            <span className="text-xs text-gray-300">
+                                {currentEnvironment}
+                            </span>
+                        </div>
                     </div>
                     
                     {/* Download Button */}
@@ -176,50 +251,50 @@ function CodeView() {
                     </button>
                 </div>
             </div>
-            <SandpackProvider 
-            files={files}
-            template="react" 
-            theme={'dark'}
-            customSetup={{
-                dependencies: {
-                    ...Lookup.DEPENDANCY
-                },
-                entry: '/index.js'
-            }}
-            options={{
-                externalResources: ['https://cdn.tailwindcss.com'],
-                bundlerTimeoutSecs: 120,
-                recompileMode: "immediate",
-                recompileDelay: 300
-            }}
-            >
-                <div className="relative">
-                    <SandpackLayout>
-                        {activeTab=='code'?<>
-                            <SandpackFileExplorer style={{ height: '80vh' }} />
-                            <SandpackCodeEditor 
-                            style={{ height: '80vh' }}
-                            showTabs
-                            showLineNumbers
-                            showInlineErrors
-                            wrapContent />
-                        </>:
-                        <>
-                            <SandpackPreview 
-                                style={{ height: '80vh' }} 
-                                showNavigator={true}
-                                showOpenInCodeSandbox={false}
-                                showRefreshButton={true}
-                            />
-                        </>}
-                    </SandpackLayout>
+            
+            {Object.keys(files).length > 0 ? (
+                <SandpackProvider 
+                files={files}
+                template={templateConfig.template}
+                theme={'dark'}
+                customSetup={templateConfig.customSetup}
+                options={templateConfig.options}
+                >
+                    <div className="relative">
+                        <SandpackLayout>
+                            {activeTab=='code'?<>
+                                <SandpackFileExplorer style={{ height: '80vh' }} />
+                                <SandpackCodeEditor 
+                                style={{ height: '80vh' }}
+                                showTabs
+                                showLineNumbers
+                                showInlineErrors
+                                wrapContent />
+                            </>:
+                            <>
+                                <SandpackPreview 
+                                    style={{ height: '80vh' }} 
+                                    showNavigator={currentEnvironment !== 'WordPress'}
+                                    showOpenInCodeSandbox={false}
+                                    showRefreshButton={true}
+                                />
+                            </>}
+                        </SandpackLayout>
+                    </div>
+                </SandpackProvider>
+            ) : (
+                <div className="flex items-center justify-center h-[80vh] bg-gray-900">
+                    <div className="text-center text-gray-400">
+                        <p className="text-lg">No files generated yet</p>
+                        <p className="text-sm">Start a conversation to generate code</p>
+                    </div>
                 </div>
-            </SandpackProvider>
+            )}
 
             {loading&&<div className='p-10 bg-gray-900 opacity-80 absolute top-0 
             rounded-lg w-full h-full flex items-center justify-center'>
                 <Loader2Icon className='animate-spin h-10 w-10 text-white'/>
-                <h2 className='text-white'> Generating files...</h2>
+                <h2 className='text-white'> Generating {currentEnvironment} files...</h2>
             </div>}
         </div>
     );

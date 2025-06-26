@@ -16,6 +16,7 @@ function ChatView() {
     const { messages, setMessages } = useContext(MessagesContext);
     const [userInput, setUserInput] = useState();
     const [loading, setLoading] = useState(false);
+    const [currentEnvironment, setCurrentEnvironment] = useState('React');
     const UpdateMessages = useMutation(api.workspace.UpdateWorkspace);
 
     useEffect(() => {
@@ -27,6 +28,7 @@ function ChatView() {
             workspaceId: id
         });
         setMessages(result?.messages);
+        setCurrentEnvironment(result?.environment || 'React');
         console.log(result);
     }
 
@@ -68,6 +70,18 @@ function ChatView() {
 
     return (
         <div className="relative h-[85vh] flex flex-col bg-gray-900">
+            {/* Environment Indicator */}
+            <div className="bg-gray-800/50 border-b border-gray-700 p-3">
+                <div className="flex items-center justify-between max-w-4xl mx-auto">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm text-gray-300">
+                            Environment: <span className="text-blue-400 font-semibold">{currentEnvironment}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
                 <div className="max-w-4xl mx-auto space-y-4">
@@ -112,7 +126,7 @@ function ChatView() {
                     <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
                         <div className="flex gap-3">
                             <textarea
-                                placeholder="Type your message here..."
+                                placeholder={`Type your ${currentEnvironment} development message here...`}
                                 value={userInput}
                                 onChange={(event) => setUserInput(event.target.value)}
                                 className="w-full bg-gray-900/50 border border-gray-700 rounded-xl p-4 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 resize-none h-32"

@@ -1,7 +1,7 @@
 "use client"
 import Lookup from '@/data/Lookup';
 import { MessagesContext } from '@/context/MessagesContext';
-import { ArrowRight, Link, Sparkles, Send, Wand2, Loader2 } from 'lucide-react';
+import { ArrowRight, Link, Sparkles, Send, Wand2, Loader2, Code, Globe, FileText } from 'lucide-react';
 import React, { useContext, useState } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -10,9 +10,33 @@ import { useRouter } from 'next/navigation';
 function Hero() {
     const [userInput, setUserInput] = useState('');
     const [isEnhancing, setIsEnhancing] = useState(false);
-    const { messages, setMessages } = useContext(MessagesContext);
+    const { messages, setMessages, selectedEnvironment, setSelectedEnvironment } = useContext(MessagesContext);
     const CreateWorkspace = useMutation(api.workspace.CreateWorkspace);
     const router = useRouter();
+
+    const environments = [
+        { 
+            id: 'React', 
+            name: 'React', 
+            icon: Code, 
+            description: 'Modern React applications with Vite',
+            color: 'from-blue-500 to-cyan-500'
+        },
+        { 
+            id: 'WordPress', 
+            name: 'WordPress', 
+            icon: Globe, 
+            description: 'WordPress themes and plugins',
+            color: 'from-purple-500 to-pink-500'
+        },
+        { 
+            id: 'HTML', 
+            name: 'HTML/CSS/JS', 
+            icon: FileText, 
+            description: 'Static HTML websites',
+            color: 'from-green-500 to-emerald-500'
+        }
+    ];
 
     const onGenerate = async (input) => {
         const msg = {
@@ -21,7 +45,8 @@ function Hero() {
         }
         setMessages(msg);
         const workspaceID = await CreateWorkspace({
-            messages: [msg]
+            messages: [msg],
+            environment: selectedEnvironment
         });
         router.push('/workspace/' + workspaceID);
     }
@@ -36,7 +61,10 @@ function Hero() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: userInput }),
+                body: JSON.stringify({ 
+                    prompt: userInput,
+                    environment: selectedEnvironment 
+                }),
             });
 
             const data = await response.json();
@@ -75,8 +103,52 @@ function Hero() {
                             Code the <br className="md:hidden" />Impossible
                         </h1>
                         <p className="text-xl text-neon-cyan max-w-3xl mx-auto font-mono tracking-tight">
-                            Transform your wildest ideas into production-ready code with Ai-powered assistance
+                            Transform your wildest ideas into production-ready code with AI-powered assistance
                         </p>
+                    </div>
+
+                    {/* Environment Selection */}
+                    <div className="w-full max-w-4xl">
+                        <h2 className="text-2xl font-bold text-center text-white mb-6">Choose Your Development Environment</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {environments.map((env) => {
+                                const IconComponent = env.icon;
+                                return (
+                                    <button
+                                        key={env.id}
+                                        onClick={() => setSelectedEnvironment(env.id)}
+                                        className={`group relative p-6 rounded-xl border-2 transition-all duration-300 ${
+                                            selectedEnvironment === env.id
+                                                ? 'border-electric-blue-500 bg-electric-blue-500/10 shadow-[0_0_20px_2px_rgba(59,130,246,0.3)]'
+                                                : 'border-gray-700 bg-gray-900/50 hover:border-gray-600 hover:bg-gray-800/60'
+                                        }`}
+                                    >
+                                        <div className="flex flex-col items-center space-y-4">
+                                            <div className={`p-4 rounded-full bg-gradient-to-r ${env.color} ${
+                                                selectedEnvironment === env.id ? 'opacity-100' : 'opacity-70 group-hover:opacity-90'
+                                            }`}>
+                                                <IconComponent className="h-8 w-8 text-white" />
+                                            </div>
+                                            <div className="text-center">
+                                                <h3 className={`text-xl font-bold ${
+                                                    selectedEnvironment === env.id ? 'text-electric-blue-400' : 'text-white'
+                                                }`}>
+                                                    {env.name}
+                                                </h3>
+                                                <p className="text-gray-400 text-sm mt-2">
+                                                    {env.description}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {selectedEnvironment === env.id && (
+                                            <div className="absolute top-2 right-2">
+                                                <div className="w-3 h-3 bg-electric-blue-500 rounded-full animate-pulse"></div>
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* Modified Input Section */}
@@ -85,7 +157,7 @@ function Hero() {
                             <div className="bg-gray-900/80 p-6 rounded-lg">
                                 <div className="flex gap-4">
                                     <textarea
-                                        placeholder="DESCRIBE YOUR VISION..."
+                                        placeholder={`DESCRIBE YOUR ${selectedEnvironment.toUpperCase()} PROJECT...`}
                                         value={userInput}
                                         onChange={(e) => setUserInput(e.target.value)}
                                         className="w-full bg-transparent border-2 border-electric-blue-500/30 rounded-lg p-5 text-gray-100 placeholder-electric-blue-500/60 focus:border-electric-blue-500 focus:ring-0 outline-none font-mono text-lg h-40 resize-none transition-all duration-300 hover:border-electric-blue-500/60"
@@ -116,17 +188,31 @@ function Hero() {
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex justify-end mt-4">
+                                <div className="flex justify-between items-center mt-4">
+                                    <div className="text-sm text-electric-blue-400/80">
+                                        Selected: <span className="font-semibold">{selectedEnvironment}</span>
+                                    </div>
                                     <Link className="h-6 w-6 text-electric-blue-400/80 hover:text-electric-blue-400 transition-colors duration-200" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Holographic Suggestions Grid */}
+                    {/* Environment-specific Suggestions */}
                     <div className="w-full max-w-5xl">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {Lookup?.SUGGSTIONS.map((suggestion, index) => (
+                            {Lookup?.SUGGSTIONS[selectedEnvironment]?.map((suggestion, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => onSuggestionClick(suggestion)}
+                                    className="group relative p-6 bg-gray-900/50 hover:bg-gray-800/60 border-2 border-electric-blue-500/20 rounded-xl text-left transition-all duration-300 hover:border-electric-blue-500/40 hover:shadow-[0_0_20px_2px_rgba(59,130,246,0.2)]"
+                                >
+                                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_50%,#3b82f620)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                                    <span className="text-electric-blue-400/80 group-hover:text-electric-blue-400 font-mono text-sm tracking-wide transition-colors duration-300">
+                                        {suggestion}
+                                    </span>
+                                </button>
+                            )) || Lookup?.SUGGSTIONS.map((suggestion, index) => (
                                 <button
                                     key={index}
                                     onClick={() => onSuggestionClick(suggestion)}
