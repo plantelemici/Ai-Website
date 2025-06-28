@@ -79,35 +79,23 @@ function CodeView() {
 
     const GenerateAiCode=async()=>{
         setLoading(true);
-        try {
-            const environmentPrompt = Prompt.CODE_GEN_PROMPT[currentEnvironment] || Prompt.CODE_GEN_PROMPT.React;
-            const PROMPT=JSON.stringify(messages)+" "+environmentPrompt;
-            const result=await axios.post('/api/gen-ai-code',{
-                prompt:PROMPT,
-                environment: currentEnvironment
-            });
-            
-            // Check if we have valid files data
-            const aiFiles = result.data?.files || {};
-            
-            // Preprocess AI-generated files
-            const processedAiFiles = preprocessFiles(aiFiles);
-            const defaultFiles = Lookup.DEFAULT_FILE[currentEnvironment] || Lookup.DEFAULT_FILE.React;
-            const mergedFiles = {...defaultFiles, ...processedAiFiles};
-            setFiles(mergedFiles);
+        const environmentPrompt = Prompt.CODE_GEN_PROMPT[currentEnvironment] || Prompt.CODE_GEN_PROMPT.React;
+        const PROMPT=JSON.stringify(messages)+" "+environmentPrompt;
+        const result=await axios.post('/api/gen-ai-code',{
+            prompt:PROMPT
+        });
+        
+        // Preprocess AI-generated files
+        const processedAiFiles = preprocessFiles(result.data?.files || {});
+        const defaultFiles = Lookup.DEFAULT_FILE[currentEnvironment] || Lookup.DEFAULT_FILE.React;
+        const mergedFiles = {...defaultFiles, ...processedAiFiles};
+        setFiles(mergedFiles);
 
-            // Only update files if we have actual file data
-            if (Object.keys(aiFiles).length > 0) {
-                await UpdateFiles({
-                    workspaceId:id,
-                    files:aiFiles
-                });
-            }
-        } catch (error) {
-            console.error('Error generating AI code:', error);
-        } finally {
-            setLoading(false);
-        }
+        await UpdateFiles({
+            workspaceId:id,
+            files:result.data?.files
+        });
+        setLoading(false);
     }
     
     const downloadFiles = async () => {
